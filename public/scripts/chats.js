@@ -679,9 +679,11 @@ class StylesPreference {
  * Formats creator notes in the message text.
  * @param {string} text Raw Markdown text
  * @param {string} avatarId Avatar ID
+ * @param {object} options Options object
+ * @param {boolean} [options.stripHtml] Whether to strip HTML tags from the output
  * @returns {string} Formatted HTML text
  */
-export function formatCreatorNotes(text, avatarId) {
+export function formatCreatorNotes(text, avatarId, { stripHtml } = {}) {
     const preference = new StylesPreference(avatarId);
     const sanitizeStyles = !preference.get();
     const decodeStyleParam = { prefix: sanitizeStyles ? '#creator_notes_spoiler ' : '' };
@@ -698,6 +700,12 @@ export function formatCreatorNotes(text, avatarId) {
     html = encodeStyleTags(html);
     html = DOMPurify.sanitize(html, config);
     html = decodeStyleTags(html, decodeStyleParam);
+
+    if (stripHtml) {
+        const domParser = new DOMParser();
+        const doc = domParser.parseFromString(html, 'text/html');
+        return doc.body.textContent || '';
+    }
 
     return html;
 }

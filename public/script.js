@@ -910,7 +910,7 @@ function getCharacterBlock(item, id) {
 
     const description = item.data?.creator_notes || '';
     if (description) {
-        template.find('.ch_description').text(description);
+        template.find('.ch_description').text(formatCreatorNotes(description, item.avatar, { stripHtml: true }));
     } else {
         template.find('.ch_description').hide();
     }
