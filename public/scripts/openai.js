@@ -60,6 +60,7 @@ import {
     getStringHash,
     getVideoDurationFromDataURL,
     isDataURL,
+    isTrueBoolean,
     isUuid,
     isValidUrl,
     parseJsonFile,
@@ -73,7 +74,8 @@ import { isMobile } from './RossAscends-mods.js';
 import { saveLogprobsForActiveMessage } from './logprobs.js';
 import { SlashCommandParser } from './slash-commands/SlashCommandParser.js';
 import { SlashCommand } from './slash-commands/SlashCommand.js';
-import { ARGUMENT_TYPE, SlashCommandArgument } from './slash-commands/SlashCommandArgument.js';
+import { ARGUMENT_TYPE, SlashCommandArgument, SlashCommandNamedArgument } from './slash-commands/SlashCommandArgument.js';
+import { commonEnumProviders } from './slash-commands/SlashCommandCommonEnumsProvider.js';
 import { renderTemplateAsync } from './templates.js';
 import { SlashCommandEnumValue } from './slash-commands/SlashCommandEnumValue.js';
 import { callGenericPopup, Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
@@ -322,6 +324,7 @@ export const settingsToUpdate = {
     openrouter_providers: ['#openrouter_providers_chat', 'openrouter_providers', false, true],
     openrouter_quantizations: ['#openrouter_quantizations_chat', 'openrouter_quantizations', false, true],
     openrouter_allow_fallbacks: ['#openrouter_allow_fallbacks', 'openrouter_allow_fallbacks', true, true],
+    openrouter_service_tier: ['#openrouter_service_tier', 'openrouter_service_tier', false, true],
     openrouter_middleout: ['#openrouter_middleout', 'openrouter_middleout', false, true],
     tool_reasoning_mode: ['#tool_reasoning_mode', 'tool_reasoning_mode', false, false],
     ai21_model: ['#model_ai21_select', 'ai21_model', false, true],
@@ -481,6 +484,7 @@ const default_settings = {
     openrouter_providers: [],
     openrouter_quantizations: [],
     openrouter_allow_fallbacks: true,
+    openrouter_service_tier: '',
     openrouter_middleout: openrouter_middleout_types.ON,
     tool_reasoning_mode: tool_reasoning_modes.DISABLED,
     reverse_proxy: '',
@@ -2887,6 +2891,9 @@ export async function createGenerationParameters(settings, model, type, messages
         generate_data.quantizations = settings.openrouter_quantizations;
         generate_data.allow_fallbacks = settings.openrouter_allow_fallbacks;
         generate_data.middleout = settings.openrouter_middleout;
+        if (settings.openrouter_service_tier) {
+            generate_data.service_tier = settings.openrouter_service_tier;
+        }
     }
 
     if (settings.chat_completion_source === chat_completion_sources.NANOGPT) {
@@ -6739,6 +6746,19 @@ function updateFeatureSupportFlags() {
     }
 }
 
+/**
+ * Provides the list of valid OpenRouter service tiers for slash commands.
+ * @returns {SlashCommandEnumValue[]} Enum values
+ */
+function openRouterServiceTierEnumProvider() {
+    return [
+        new SlashCommandEnumValue('none', t`No service tier requested (default behavior)`),
+        new SlashCommandEnumValue('flex', t`Lower cost, higher latency`),
+        new SlashCommandEnumValue('priority', t`Faster, higher cost`),
+        new SlashCommandEnumValue('default', t`Pin the standard tier`),
+    ];
+}
+
 export function initOpenAI() {
     SlashCommandParser.addCommandObject(SlashCommand.fromProps({
         name: 'proxy',
@@ -6754,6 +6774,68 @@ export function initOpenAI() {
             }),
         ],
         helpString: 'Sets a proxy preset by name.',
+    }));
+
+    SlashCommandParser.addCommandObject(SlashCommand.fromProps({
+        name: 'service-tier',
+        helpString: `
+            <div>
+                ${t`Sets an OpenRouter service tier for the Chat Completion source. Gets the current selection if no value is provided. Only used when the Chat Completion source is OpenRouter.`}
+            </div>
+            <div>
+                <strong>${t`Examples:`}</strong>
+            </div>
+            <ul>
+                <li><pre><code class="language-stscript">/service-tier | /echo</code></pre></li>
+                <li><pre><code class="language-stscript">/service-tier flex</code></pre></li>
+                <li><pre><code class="language-stscript">/service-tier force="true" {{noop}}</code></pre></li>
+            </ul>
+        `,
+        returns: 'current service tier',
+        namedArgumentList: [
+            SlashCommandNamedArgument.fromProps({
+                name: 'force',
+                description: 'force set an empty value',
+                typeList: [ARGUMENT_TYPE.BOOLEAN],
+                defaultValue: 'false',
+                enumList: commonEnumProviders.boolean('trueFalse')(),
+            }),
+        ],
+        unnamedArgumentList: [
+            SlashCommandArgument.fromProps({
+                description: t`value`,
+                typeList: [ARGUMENT_TYPE.STRING],
+                acceptsMultiple: false,
+                isRequired: false,
+                forceEnum: true,
+                enumProvider: openRouterServiceTierEnumProvider,
+            }),
+        ],
+        callback: (args, value) => {
+            const stringValue = String(value ?? '').trim().toLowerCase();
+
+            // Gets the current selection if no value is provided (unless forced)
+            if (!stringValue) {
+                if (isTrueBoolean(String(args?.force ?? false))) {
+                    oai_settings.openrouter_service_tier = '';
+                    $('#openrouter_service_tier').val('').trigger('change');
+                    return '';
+                }
+
+                return oai_settings.openrouter_service_tier || '';
+            }
+
+            const validValues = openRouterServiceTierEnumProvider().map(option => option.value);
+            if (!validValues.includes(stringValue)) {
+                throw new Error(t`Invalid value "${stringValue}". Valid values are: ${validValues.join(', ')}`);
+            }
+
+            // 'none' value must be coerced to an empty string
+            oai_settings.openrouter_service_tier = stringValue === 'none' ? '' : stringValue;
+            $('#openrouter_service_tier').val(oai_settings.openrouter_service_tier).trigger('change');
+
+            return oai_settings.openrouter_service_tier;
+        },
     }));
 
     $('#test_api_button').on('click', testApiConnection);
@@ -7009,6 +7091,11 @@ export function initOpenAI() {
 
     $('#openrouter_middleout').on('input', function () {
         oai_settings.openrouter_middleout = String($(this).val());
+        saveSettingsDebounced();
+    });
+
+    $('#openrouter_service_tier').on('change', function () {
+        oai_settings.openrouter_service_tier = String($(this).val());
         saveSettingsDebounced();
     });
 

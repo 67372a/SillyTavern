@@ -1763,6 +1763,20 @@ async function sendAzureOpenAIRequest(request, response) {
     }
 }
 
+/**
+ * Validates and normalizes an OpenRouter service tier.
+ * @param {string} tier Requested service tier
+ * @returns {string|null} Valid tier value, or null when missing or invalid
+ */
+export function getOpenRouterServiceTier(tier) {
+    if (!tier) {
+        return null;
+    }
+
+    const normalized = String(tier).trim().toLowerCase();
+    return ['flex', 'priority', 'fast', 'default'].includes(normalized) ? normalized : null;
+}
+
 export const router = express.Router();
 
 router.post('/status', async function (request, statusResponse) {
@@ -2333,6 +2347,11 @@ router.post('/generate', async function (request, response) {
 
             if (request.body.use_fallback) {
                 bodyParams['route'] = 'fallback';
+            }
+
+            const serviceTier = getOpenRouterServiceTier(request.body.service_tier);
+            if (serviceTier) {
+                bodyParams['service_tier'] = serviceTier;
             }
 
             if (request.body.reasoning_effort) {

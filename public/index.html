@@ -3242,6 +3242,18 @@
                                     <span data-i18n="Allow fallback providers">Allow fallback providers</span>
                                 </label>
                             </div>
+                            <div>
+                                <h4 data-i18n="Service Tier">Service Tier</h4>
+                                <select id="openrouter_service_tier" class="text_pole" title="Flex requests never fall back to default-tier endpoints: a capacity error is returned instead. Priority requests fall back to other endpoints and are billed at the rate actually served.">
+                                    <option value="" data-i18n="Auto (no tier requested)">Auto (no tier requested)</option>
+                                    <option value="flex" data-i18n="Flex (lower cost, higher latency)">Flex (lower cost, higher latency)</option>
+                                    <option value="priority" data-i18n="Priority (faster, higher cost)">Priority (faster, higher cost)</option>
+                                    <option value="default" data-i18n="Default (pin the standard tier)">Default (pin the standard tier)</option>
+                                </select>
+                                <small data-i18n="Requests a specific capacity tier from providers that support it. The response is billed at the tier that actually served the request.">
+                                    Requests a specific capacity tier from providers that support it. The response is billed at the tier that actually served the request.
+                                </small>
+                            </div>
                             <small class="marginTopBot5">
                                 <i class="fa-solid fa-lightbulb"></i>
                                 <span data-i18n="To use instruct formatting, switch to OpenRouter under Text Completion API.">To use instruct formatting, switch to OpenRouter under Text Completion API.</span>

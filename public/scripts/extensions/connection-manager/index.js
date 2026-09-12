@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS = {
 const ALLOW_EMPTY = [
     'stop-strings',
     'start-reply-with',
+    'service-tier',
 ];
 
 const CC_COMMANDS = [
@@ -42,6 +43,7 @@ const CC_COMMANDS = [
     'api',
     'api-url',
     'model',
+    'service-tier',
     'proxy',
     'stop-strings',
     'start-reply-with',
@@ -74,6 +76,7 @@ const FANCY_NAMES = {
     'api-url': 'Server URL',
     'preset': 'Settings Preset',
     'model': 'Model',
+    'service-tier': 'Service Tier',
     'proxy': 'Proxy Preset',
     'sysprompt-state': 'Use System Prompt',
     'sysprompt': 'System Prompt Name',
@@ -178,6 +181,7 @@ const profilesProvider = () => [
  * @property {string} [api-url] Server URL
  * @property {string} [secret-id] Secret ID
  * @property {string} [regex-preset] Regex Preset ID
+ * @property {string} [service-tier] OpenRouter Service Tier
  * @property {string[]} [exclude] Commands to exclude
  */
 

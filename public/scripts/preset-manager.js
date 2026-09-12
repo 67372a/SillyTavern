@@ -718,6 +718,7 @@ class PresetManager {
             'openrouter_providers',
             'openrouter_quantizations',
             'openrouter_allow_fallbacks',
+            'openrouter_service_tier',
             'tabby_model',
             'derived',
             'generic_model',
